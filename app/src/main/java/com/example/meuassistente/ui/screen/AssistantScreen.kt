@@ -304,6 +304,20 @@ private fun TaskItemCard(task: TaskEntity, onToggleComplete: () -> Unit, onEdit:
                     Text(fmt.format(Date(task.triggerAtMillis)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }
+            val shareCtx = LocalContext.current
+            IconButton(onClick = {
+                val whenStr = fmt.format(Date(task.triggerAtMillis))
+                val msg = buildString {
+                    append("Lembrete: " + task.title + "\nHorário: " + whenStr)
+                    if (task.description.isNotBlank()) append("\nDetalhes: " + task.description)
+                }
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, task.title)
+                    putExtra(Intent.EXTRA_TEXT, msg)
+                }
+                shareCtx.startActivity(Intent.createChooser(intent, "Compartilhar lembrete"))
+            }) { Icon(Icons.Default.Share, "Compartilhar", tint = MaterialTheme.colorScheme.primary) }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Excluir", tint = MaterialTheme.colorScheme.error) }
         }
     }
