@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.example.meuassistente.data.local.AppDatabase
 import com.example.meuassistente.data.local.entity.RepeatInterval
+import com.example.meuassistente.data.local.entity.TaskCategory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,7 +27,11 @@ class TaskAlarmReceiver : BroadcastReceiver() {
                         val dao = AppDatabase.getInstance(context).taskDao()
                         val task = dao.getTaskById(taskId)
                         if (task != null && !task.isCompleted) {
-                            NotificationHelper.showTaskNotification(context, task)
+                            if (task.category == TaskCategory.URGENTE.name) {
+                                UrgentAlarmService.start(context, task.id, task.title, task.description)
+                            } else {
+                                NotificationHelper.showTaskNotification(context, task)
+                            }
 
                             val repeat = RepeatInterval.fromName(task.repeatInterval)
                             val nextMillis = repeat.nextTriggerMillis(task.triggerAtMillis)
@@ -44,6 +49,7 @@ class TaskAlarmReceiver : BroadcastReceiver() {
             ACTION_SNOOZE_TASK -> {
                 val taskId = intent.getLongExtra(TaskScheduler.EXTRA_TASK_ID, -1L)
                 if (taskId == -1L) return
+                UrgentAlarmService.stop(context)
                 NotificationHelper.cancelNotification(context, taskId)
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
@@ -66,6 +72,7 @@ class TaskAlarmReceiver : BroadcastReceiver() {
             ACTION_COMPLETE_TASK -> {
                 val taskId = intent.getLongExtra(TaskScheduler.EXTRA_TASK_ID, -1L)
                 if (taskId == -1L) return
+                UrgentAlarmService.stop(context)
                 NotificationHelper.cancelNotification(context, taskId)
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
