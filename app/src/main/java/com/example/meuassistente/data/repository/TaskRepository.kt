@@ -4,20 +4,22 @@ import com.example.meuassistente.data.local.dao.TaskDao
 import com.example.meuassistente.data.local.entity.TaskEntity
 import kotlinx.coroutines.flow.Flow
 
-class TaskRepository(private val taskDao: TaskDao) {
-    val allTasks: Flow<List<TaskEntity>> = taskDao.observeAllTasks()
-
-    suspend fun getTaskById(id: Long): TaskEntity? = taskDao.getTaskById(id)
+class TaskRepository(private val dao: TaskDao) {
+    val allTasks: Flow<List<TaskEntity>> = dao.observeAllTasks()
 
     suspend fun getUpcomingAlarmTasks(nowMillis: Long): List<TaskEntity> =
-        taskDao.getUpcomingAlarmTasks(nowMillis)
+        dao.getUpcomingAlarmTasks(nowMillis)
 
-    suspend fun saveTask(task: TaskEntity): Long = taskDao.insertTask(task)
+    suspend fun getTaskById(taskId: Long): TaskEntity? = dao.getTaskById(taskId)
 
-    suspend fun updateTask(task: TaskEntity) = taskDao.updateTask(task)
+    suspend fun saveTask(task: TaskEntity): Long = dao.insertTask(task)
 
-    suspend fun deleteTask(task: TaskEntity) = taskDao.deleteTask(task)
+    suspend fun updateTask(task: TaskEntity) = dao.updateTask(task)
 
-    suspend fun toggleTaskCompleted(id: Long, completed: Boolean) =
-        taskDao.setTaskCompleted(id, completed)
+    suspend fun deleteTask(task: TaskEntity) = dao.deleteTask(task)
+
+    suspend fun toggleTaskCompleted(taskId: Long, completed: Boolean) =
+        dao.setTaskCompleted(taskId, completed)
+
+    suspend fun deleteCompletedTasks(): Int = dao.deleteCompletedTasks()
 }

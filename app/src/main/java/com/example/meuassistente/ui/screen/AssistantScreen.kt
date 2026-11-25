@@ -46,6 +46,7 @@ fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var showClearCompletedDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.statusMessage) {
         state.statusMessage?.let { msg ->
@@ -97,6 +98,11 @@ fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
                     }
                 },
                 actions = {
+                    if (state.completedCount > 0) {
+                        IconButton(onClick = { showClearCompletedDialog = true }) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = "Limpar concluídas")
+                        }
+                    }
                     IconButton(onClick = {
                         val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
                         exportLauncher.launch("meu_assistente_backup_$stamp.json")
@@ -199,6 +205,28 @@ fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
             TaskEditorDialog(state.editingTask, { viewModel.closeDialog() }) { t, d, m, a, c, r ->
                 viewModel.saveTask(t, d, m, a, c, r)
             }
+        }
+        if (showClearCompletedDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearCompletedDialog = false },
+                title = { Text("Limpar tarefas concluídas?") },
+                text = {
+                    Text("Deseja excluir permanentemente ${state.completedCount} tarefa(s) já concluída(s)?")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.clearCompletedTasks()
+                        showClearCompletedDialog = false
+                    }) {
+                        Text("Excluir", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearCompletedDialog = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
     }
 }

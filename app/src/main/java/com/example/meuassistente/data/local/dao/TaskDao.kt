@@ -1,11 +1,6 @@
 package com.example.meuassistente.data.local.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.example.meuassistente.data.local.entity.TaskEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -34,4 +29,7 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET isCompleted = :completed WHERE id = :taskId")
     suspend fun setTaskCompleted(taskId: Long, completed: Boolean)
+
+    @Query("DELETE FROM tasks WHERE isCompleted = 1")
+    suspend fun deleteCompletedTasks(): Int
 }

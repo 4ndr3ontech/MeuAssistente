@@ -119,6 +119,18 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
+    fun clearCompletedTasks() {
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val removed = repository.deleteCompletedTasks()
+            TaskWidgetProvider.refreshAll(ctx)
+            if (removed > 0) {
+                statusMessage.value = "$removed tarefa(s) concluída(s) removida(s)."
+            }
+        }
+    }
+
     fun exportBackupToUri(uri: Uri) {
         viewModelScope.launch {
             val ctx = getApplication<Application>()
