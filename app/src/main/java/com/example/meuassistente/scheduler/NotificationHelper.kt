@@ -75,6 +75,17 @@ object NotificationHelper {
             snoozeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val snooze10Intent = Intent(context, TaskAlarmReceiver::class.java).apply {
+            action = TaskAlarmReceiver.ACTION_SNOOZE_TASK
+            putExtra(TaskScheduler.EXTRA_TASK_ID, task.id)
+            putExtra(TaskAlarmReceiver.EXTRA_SNOOZE_MINUTES, 10)
+        }
+        val snooze10PendingIntent = PendingIntent.getBroadcast(
+            context,
+            (task.id * 10 + 3).toInt(),
+            snooze10Intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val completeIntent = Intent(context, TaskAlarmReceiver::class.java).apply {
             action = TaskAlarmReceiver.ACTION_COMPLETE_TASK
@@ -101,6 +112,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setContentIntent(openPendingIntent)
             .addAction(0, "Adiar 5 min", snoozePendingIntent)
+            .addAction(0, "Adiar 10 min", snooze10PendingIntent)
             .addAction(0, "Concluir", completePendingIntent)
             .build()
 
