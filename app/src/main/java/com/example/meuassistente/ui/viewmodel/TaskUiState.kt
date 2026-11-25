@@ -7,7 +7,8 @@ data class TaskUiState(
     val allTasks: List<TaskEntity> = emptyList(),
     val selectedCategory: TaskCategory? = null,
     val isDialogOpen: Boolean = false,
-    val editingTask: TaskEntity? = null
+    val editingTask: TaskEntity? = null,
+    val statusMessage: String? = null
 ) {
     val tasks: List<TaskEntity>
         get() = if (selectedCategory == null) allTasks

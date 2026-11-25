@@ -1,8 +1,10 @@
 package com.example.meuassistente.ui.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.meuassistente.data.backup.TaskBackupManager
 import com.example.meuassistente.data.local.AppDatabase
 import com.example.meuassistente.data.local.entity.RepeatInterval
 import com.example.meuassistente.data.local.entity.TaskCategory
@@ -10,30 +12,35 @@ import com.example.meuassistente.data.local.entity.TaskEntity
 import com.example.meuassistente.data.repository.TaskRepository
 import com.example.meuassistente.scheduler.NotificationHelper
 import com.example.meuassistente.scheduler.TaskScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TaskRepository(AppDatabase.getInstance(application).taskDao())
     private val selectedCategory = MutableStateFlow<TaskCategory?>(null)
     private val isDialogOpen = MutableStateFlow(false)
     private val editingTask = MutableStateFlow<TaskEntity?>(null)
+    private val statusMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<TaskUiState> = combine(
-        repository.allTasks, selectedCategory, isDialogOpen, editingTask
-    ) { tasks, category, dialogOpen, taskToEdit ->
+        repository.allTasks, selectedCategory, isDialogOpen, editingTask, statusMessage
+    ) { tasks, category, dialogOpen, taskToEdit, message ->
         TaskUiState(
             allTasks = tasks,
             selectedCategory = category,
             isDialogOpen = dialogOpen,
-            editingTask = taskToEdit
+            editingTask = taskToEdit,
+            statusMessage = message
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
 
+    fun clearStatusMessage() { statusMessage.value = null }
     fun selectCategory(category: TaskCategory?) { selectedCategory.value = category }
     fun openNewTaskDialog() { editingTask.value = null; isDialogOpen.value = true }
     fun openEditTaskDialog(task: TaskEntity) { editingTask.value = task; isDialogOpen.value = true }
@@ -95,6 +102,52 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             TaskScheduler.cancelTask(ctx, task.id)
             NotificationHelper.cancelNotification(ctx, task.id)
             repository.deleteTask(task)
+        }
+    }
+
+    fun exportBackupToUri(uri: Uri) {
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val result = runCatching {
+                val tasks = uiState.value.allTasks
+                val json = TaskBackupManager.exportToJson(tasks)
+                withContext(Dispatchers.IO) {
+                    ctx.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(json.toByteArray(Charsets.UTF_8))
+                    } ?: error("Falha ao abrir arquivo de destino")
+                }
+                tasks.size
+            }
+            statusMessage.value = result.fold(
+                onSuccess = { count -> "Backup exportado com sucesso ($count tarefa(s))." },
+                onFailure = { err -> "Erro ao exportar backup: ${err.localizedMessage}" }
+            )
+        }
+    }
+
+    fun importBackupFromUri(uri: Uri) {
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val result = runCatching {
+                val rawJson = withContext(Dispatchers.IO) {
+                    ctx.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                        ?: error("Falha ao ler arquivo selecionado")
+                }
+                val tasks = TaskBackupManager.importFromJson(rawJson)
+                val now = System.currentTimeMillis()
+                tasks.forEach { task ->
+                    val newId = repository.saveTask(task)
+                    val savedTask = task.copy(id = newId)
+                    if (savedTask.hasAlarm && !savedTask.isCompleted && savedTask.triggerAtMillis > now) {
+                        TaskScheduler.scheduleTask(ctx, savedTask)
+                    }
+                }
+                tasks.size
+            }
+            statusMessage.value = result.fold(
+                onSuccess = { count -> "$count tarefa(s) restaurada(s) do backup." },
+                onFailure = { err -> "Arquivo JSON inválido: ${err.localizedMessage}" }
+            )
         }
     }
 }

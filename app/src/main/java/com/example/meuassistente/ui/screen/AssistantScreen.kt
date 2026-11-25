@@ -45,6 +45,22 @@ import java.util.*
 fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.statusMessage) {
+        state.statusMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearStatusMessage()
+        }
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let { viewModel.exportBackupToUri(it) } }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { viewModel.importBackupFromUri(it) } }
 
     var hasNotifPerm by remember {
         mutableStateOf(
@@ -67,14 +83,33 @@ fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(title = {
-                Column {
-                    Text("Meu Assistente", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("${state.pendingCount} pendente(s) • ${state.completedCount} concluída(s)",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Meu Assistente", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "${state.pendingCount} pendente(s) • ${state.completedCount} concluída(s)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
+                        exportLauncher.launch("meu_assistente_backup_$stamp.json")
+                    }) {
+                        Icon(Icons.Default.FileUpload, contentDescription = "Exportar Backup JSON")
+                    }
+                    IconButton(onClick = {
+                        importLauncher.launch(arrayOf("application/json", "*/*"))
+                    }) {
+                        Icon(Icons.Default.FileDownload, contentDescription = "Restaurar Backup JSON")
+                    }
                 }
-            })
+            )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
