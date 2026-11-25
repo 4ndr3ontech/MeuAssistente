@@ -24,6 +24,18 @@ import com.example.meuassistente.ui.theme.MeuAssistenteTheme
 
 class AlarmAlertActivity : ComponentActivity() {
 
+    private fun triggerSnooze(taskId: Long, minutes: Int) {
+        UrgentAlarmService.stop(this)
+        if (taskId != -1L) {
+            sendBroadcast(Intent(this, TaskAlarmReceiver::class.java).apply {
+                action = TaskAlarmReceiver.ACTION_SNOOZE_TASK
+                putExtra(TaskScheduler.EXTRA_TASK_ID, taskId)
+                putExtra(TaskAlarmReceiver.EXTRA_SNOOZE_MINUTES, minutes)
+            })
+        }
+        finish()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -49,9 +61,7 @@ class AlarmAlertActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(28.dp),
+                        modifier = Modifier.fillMaxSize().padding(28.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -85,7 +95,7 @@ class AlarmAlertActivity : ComponentActivity() {
                                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
                             )
                         }
-                        Spacer(Modifier.height(40.dp))
+                        Spacer(Modifier.height(36.dp))
                         Button(
                             onClick = {
                                 UrgentAlarmService.stop(this@AlarmAlertActivity)
@@ -103,23 +113,22 @@ class AlarmAlertActivity : ComponentActivity() {
                             Spacer(Modifier.width(8.dp))
                             Text("Concluir Tarefa", style = MaterialTheme.typography.titleMedium)
                         }
-                        Spacer(Modifier.height(14.dp))
-                        OutlinedButton(
-                            onClick = {
-                                UrgentAlarmService.stop(this@AlarmAlertActivity)
-                                if (taskId != -1L) {
-                                    sendBroadcast(Intent(this@AlarmAlertActivity, TaskAlarmReceiver::class.java).apply {
-                                        action = TaskAlarmReceiver.ACTION_SNOOZE_TASK
-                                        putExtra(TaskScheduler.EXTRA_TASK_ID, taskId)
-                                    })
-                                }
-                                finish()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(54.dp)
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Default.Snooze, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Adiar 5 minutos", style = MaterialTheme.typography.titleMedium)
+                            listOf(5, 10, 30).forEach { mins ->
+                                OutlinedButton(
+                                    onClick = { triggerSnooze(taskId, mins) },
+                                    modifier = Modifier.weight(1f).height(52.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Snooze, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("${mins}m", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 }

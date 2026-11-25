@@ -58,8 +58,9 @@ class TaskAlarmReceiver : BroadcastReceiver() {
                         val dao = AppDatabase.getInstance(context).taskDao()
                         val task = dao.getTaskById(taskId)
                         if (task != null && !task.isCompleted) {
+                            val snoozeMinutes = intent.getIntExtra(EXTRA_SNOOZE_MINUTES, 5)
                             val snoozedTask = task.copy(
-                                triggerAtMillis = System.currentTimeMillis() + 5 * 60_000L,
+                                triggerAtMillis = System.currentTimeMillis() + snoozeMinutes * 60_000L,
                                 hasAlarm = true
                             )
                             dao.updateTask(snoozedTask)
@@ -94,5 +95,6 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         const val ACTION_TRIGGER_TASK = "com.example.meuassistente.ACTION_TRIGGER_TASK"
         const val ACTION_SNOOZE_TASK = "com.example.meuassistente.ACTION_SNOOZE_TASK"
         const val ACTION_COMPLETE_TASK = "com.example.meuassistente.ACTION_COMPLETE_TASK"
+        const val EXTRA_SNOOZE_MINUTES = "com.example.meuassistente.EXTRA_SNOOZE_MINUTES"
     }
 }
