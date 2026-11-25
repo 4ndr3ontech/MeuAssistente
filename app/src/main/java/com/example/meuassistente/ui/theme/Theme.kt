@@ -1,58 +1,78 @@
 package com.example.meuassistente.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import com.example.meuassistente.data.local.datastore.ThemeModePref
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val OfficialDarkColorScheme = darkColorScheme(
+    primary = DarkPrimary,
+    onPrimary = DarkOnPrimary,
+    primaryContainer = DarkSurfaceVariant,
+    onPrimaryContainer = DarkPrimary,
+    secondary = DarkPrimary,
+    onSecondary = DarkOnPrimary,
+    tertiary = WarningAmber,
+    onTertiary = OnWarningAmber,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    outline = DarkOutline,
+    error = AlertCoral,
+    onError = OnAlertCoral
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val OfficialLightColorScheme = lightColorScheme(
+    primary = LightPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightSurfaceVariant,
+    onPrimaryContainer = LightPrimary,
+    secondary = LightPrimary,
+    onSecondary = LightOnPrimary,
+    tertiary = WarningAmber,
+    onTertiary = OnWarningAmber,
+    background = LightBackground,
+    onBackground = LightOnBackground,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline,
+    error = AlertCoral,
+    onError = OnAlertCoral
 )
 
 @Composable
 fun MeuAssistenteTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    themeMode: ThemeModePref = ThemeModePref.SYSTEM,
+    fontScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val isDark = when (themeMode) {
+        ThemeModePref.DARK -> true
+        ThemeModePref.LIGHT -> false
+        ThemeModePref.SYSTEM -> isSystemInDarkTheme()
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+    val colorScheme = if (isDark) OfficialDarkColorScheme else OfficialLightColorScheme
+    val currentDensity = LocalDensity.current
+    val scaledDensity = Density(
+        density = currentDensity.density,
+        fontScale = currentDensity.fontScale * fontScale.coerceIn(0.85f, 1.35f)
     )
+
+    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

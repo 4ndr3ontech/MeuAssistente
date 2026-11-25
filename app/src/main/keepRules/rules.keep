@@ -1,7 +1,14 @@
--keep class com.example.meuassistente.** { *; }
--keep class kotlin.** { *; }
--keep class kotlinx.** { *; }
--keep class androidx.room.** { *; }
--keep class androidx.work.** { *; }
--keep class androidx.startup.** { *; }
--dontwarn org.jetbrains.annotations.**
+# Regras R8 / ProGuard - Meu Assistente
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# Kotlinx Serialization
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+-keep,includedescriptorclasses class com.example.meuassistente.domain.usecase.backup.**$$serializer { *; }
+-keepclassmembers class com.example.meuassistente.domain.usecase.backup.** {
+    *** Companion;
+}
+
+# Room & Entidades
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
