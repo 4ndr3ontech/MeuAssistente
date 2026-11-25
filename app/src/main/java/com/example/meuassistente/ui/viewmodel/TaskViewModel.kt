@@ -25,16 +25,25 @@ import kotlinx.coroutines.withContext
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TaskRepository(AppDatabase.getInstance(application).taskDao())
     private val selectedCategory = MutableStateFlow<TaskCategory?>(null)
+    private val searchQuery = MutableStateFlow("")
     private val isDialogOpen = MutableStateFlow(false)
     private val editingTask = MutableStateFlow<TaskEntity?>(null)
     private val statusMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<TaskUiState> = combine(
-        repository.allTasks, selectedCategory, isDialogOpen, editingTask, statusMessage
-    ) { tasks, category, dialogOpen, taskToEdit, message ->
+        repository.allTasks, selectedCategory, searchQuery, isDialogOpen, editingTask, statusMessage
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val tasks = values[0] as List<TaskEntity>
+        val category = values[1] as TaskCategory?
+        val query = values[2] as String
+        val dialogOpen = values[3] as Boolean
+        val taskToEdit = values[4] as TaskEntity?
+        val message = values[5] as String?
         TaskUiState(
             allTasks = tasks,
             selectedCategory = category,
+            searchQuery = query,
             isDialogOpen = dialogOpen,
             editingTask = taskToEdit,
             statusMessage = message
@@ -43,6 +52,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearStatusMessage() { statusMessage.value = null }
     fun selectCategory(category: TaskCategory?) { selectedCategory.value = category }
+    fun updateSearchQuery(query: String) { searchQuery.value = query }
     fun openNewTaskDialog() { editingTask.value = null; isDialogOpen.value = true }
     fun openEditTaskDialog(task: TaskEntity) { editingTask.value = task; isDialogOpen.value = true }
     fun closeDialog() { isDialogOpen.value = false; editingTask.value = null }
