@@ -17,6 +17,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isCompleted = 0 AND hasAlarm = 1 AND triggerAtMillis > :nowMillis")
     suspend fun getUpcomingAlarmTasks(nowMillis: Long): List<TaskEntity>
 
+    @Query("SELECT * FROM tasks WHERE isCompleted = 0 ORDER BY triggerAtMillis ASC")
+    suspend fun getPendingTasksSync(): List<TaskEntity>
+
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskById(taskId: Long): TaskEntity?
 

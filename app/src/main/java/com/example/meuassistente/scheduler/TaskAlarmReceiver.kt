@@ -6,6 +6,7 @@ import android.content.Intent
 import com.example.meuassistente.data.local.AppDatabase
 import com.example.meuassistente.data.local.entity.RepeatInterval
 import com.example.meuassistente.data.local.entity.TaskCategory
+import com.example.meuassistente.widget.TaskWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -80,6 +81,7 @@ class TaskAlarmReceiver : BroadcastReceiver() {
                         val dao = AppDatabase.getInstance(context).taskDao()
                         dao.setTaskCompleted(taskId, true)
                         TaskScheduler.cancelTask(context, taskId)
+                        TaskWidgetProvider.refreshAll(context)
                     } finally {
                         pendingResult.finish()
                     }

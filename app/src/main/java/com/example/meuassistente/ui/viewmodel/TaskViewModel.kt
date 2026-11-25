@@ -12,6 +12,7 @@ import com.example.meuassistente.data.local.entity.TaskEntity
 import com.example.meuassistente.data.repository.TaskRepository
 import com.example.meuassistente.scheduler.NotificationHelper
 import com.example.meuassistente.scheduler.TaskScheduler
+import com.example.meuassistente.widget.TaskWidgetProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,6 +79,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             val ctx = getApplication<Application>()
             if (finalTask.hasAlarm && !finalTask.isCompleted) TaskScheduler.scheduleTask(ctx, finalTask)
             else TaskScheduler.cancelTask(ctx, finalTask.id)
+            TaskWidgetProvider.refreshAll(ctx)
             closeDialog()
         }
     }
@@ -93,6 +95,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             } else if (task.hasAlarm) {
                 TaskScheduler.scheduleTask(ctx, task.copy(isCompleted = false))
             }
+            TaskWidgetProvider.refreshAll(ctx)
         }
     }
 
@@ -102,6 +105,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             TaskScheduler.cancelTask(ctx, task.id)
             NotificationHelper.cancelNotification(ctx, task.id)
             repository.deleteTask(task)
+            TaskWidgetProvider.refreshAll(ctx)
         }
     }
 
@@ -142,6 +146,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                         TaskScheduler.scheduleTask(ctx, savedTask)
                     }
                 }
+                TaskWidgetProvider.refreshAll(ctx)
                 tasks.size
             }
             statusMessage.value = result.fold(
