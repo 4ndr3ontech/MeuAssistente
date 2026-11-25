@@ -4,44 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.example.meuassistente.scheduler.NotificationHelper
+import com.example.meuassistente.scheduler.RescheduleWorker
+import com.example.meuassistente.ui.screen.AssistantScreen
 import com.example.meuassistente.ui.theme.MeuAssistenteTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationHelper.createNotificationChannel(this)
+        RescheduleWorker.enqueue(this)
         enableEdgeToEdge()
-        setContent {
-            MeuAssistenteTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MeuAssistenteTheme {
-        Greeting("Android")
+        setContent { MeuAssistenteTheme { AssistantScreen() } }
     }
 }
