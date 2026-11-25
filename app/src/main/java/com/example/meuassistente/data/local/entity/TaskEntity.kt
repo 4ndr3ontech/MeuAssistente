@@ -12,5 +12,7 @@ data class TaskEntity(
     val triggerAtMillis: Long,
     val hasAlarm: Boolean = true,
     val isCompleted: Boolean = false,
+    val category: String = TaskCategory.GERAL.name,
+    val repeatInterval: String = RepeatInterval.NONE.name,
     val createdAtMillis: Long = System.currentTimeMillis()
 )
