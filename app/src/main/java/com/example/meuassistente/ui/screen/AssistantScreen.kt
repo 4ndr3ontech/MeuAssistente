@@ -89,7 +89,7 @@ fun AssistantScreen(viewModel: TaskViewModel = viewModel()) {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Meu Assistente", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Lembretes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(
                             "${state.pendingCount} pendente(s) • ${state.completedCount} concluída(s)",
                             style = MaterialTheme.typography.bodySmall,
@@ -256,7 +256,7 @@ private fun TaskItemCard(task: TaskEntity, onToggleComplete: () -> Unit, onEdit:
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onEdit() },
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isCompleted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = if (task.isCompleted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
         )
     ) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {

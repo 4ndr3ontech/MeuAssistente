@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,15 +43,14 @@ import com.example.meuassistente.ui.screen.more.MoreModuleDestination
 import com.example.meuassistente.ui.theme.MeuAssistenteTheme
 import com.example.meuassistente.ui.viewmodel.TaskViewModel
 import com.example.meuassistente.widget.TaskWidgetProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val taskViewModel: TaskViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NotificationHelper.createNotificationChannel(this)
-        RescheduleWorker.enqueue(this)
-        TaskWidgetProvider.refreshAll(this)
 
         if (intent?.getBooleanExtra("open_new_task", false) == true) {
             taskViewModel.openNewTaskDialog()
@@ -60,6 +60,14 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            LaunchedEffect(Unit) {
+                withContext(Dispatchers.IO) {
+                    NotificationHelper.createNotificationChannel(applicationContext)
+                    RescheduleWorker.enqueue(applicationContext)
+                    TaskWidgetProvider.refreshAll(applicationContext)
+                }
+            }
+
             val prefs by appContainer.preferencesStore.preferencesFlow.collectAsState(
                 initial = UserPreferences()
             )

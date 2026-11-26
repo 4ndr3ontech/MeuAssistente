@@ -6,8 +6,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.example.meuassistente.data.local.AppDatabase
-import com.example.meuassistente.data.repository.TaskRepository
+import com.example.meuassistente.MeuAssistenteApp
 
 class RescheduleWorker(
     appContext: Context,
@@ -15,9 +14,8 @@ class RescheduleWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val dao = AppDatabase.getInstance(applicationContext).taskDao()
-        val repository = TaskRepository(dao)
-        val upcomingTasks = repository.getUpcomingAlarmTasks(System.currentTimeMillis())
+        val container = (applicationContext as MeuAssistenteApp).container
+        val upcomingTasks = container.taskRepository.getUpcomingAlarmTasks(System.currentTimeMillis())
 
         upcomingTasks.forEach { task ->
             TaskScheduler.scheduleTask(applicationContext, task)
@@ -30,9 +28,9 @@ class RescheduleWorker(
 
         fun enqueue(context: Context) {
             val request = OneTimeWorkRequestBuilder<RescheduleWorker>().build()
-            WorkManager.getInstance(context).enqueueUniqueWork(
+            WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
                 WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.KEEP,
                 request
             )
         }

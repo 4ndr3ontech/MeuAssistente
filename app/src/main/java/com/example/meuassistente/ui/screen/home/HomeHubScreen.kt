@@ -100,7 +100,7 @@ fun HomeHubScreen(
     )
 
     val formattedToday = remember {
-        val sdf = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("pt", "BR"))
+        val sdf = SimpleDateFormat("EEEE, d 'de' MMMM", Locale.forLanguageTag("pt-BR"))
         sdf.format(Date()).replaceFirstChar { it.uppercase() }
     }
 
