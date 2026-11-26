@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.meuassistente.scheduler.NotificationHelper
 import com.example.meuassistente.scheduler.TaskAlarmReceiver
 import com.example.meuassistente.scheduler.TaskScheduler
 import com.example.meuassistente.scheduler.UrgentAlarmService
@@ -24,12 +26,16 @@ import com.example.meuassistente.ui.theme.MeuAssistenteTheme
 
 class AlarmAlertActivity : ComponentActivity() {
 
-    private fun triggerSnooze(taskId: Long, minutes: Int) {
+    private fun triggerSnooze(taskId: Long, occurrenceId: Long, minutes: Int) {
         UrgentAlarmService.stop(this)
-        if (taskId != -1L) {
+        if (taskId != -1L) NotificationHelper.cancelNotification(this, taskId.toInt())
+        if (occurrenceId != -1L) NotificationHelper.cancelNotification(this, (occurrenceId + 200_000L).toInt())
+
+        if (taskId != -1L || occurrenceId != -1L) {
             sendBroadcast(Intent(this, TaskAlarmReceiver::class.java).apply {
                 action = TaskAlarmReceiver.ACTION_SNOOZE_TASK
                 putExtra(TaskScheduler.EXTRA_TASK_ID, taskId)
+                putExtra(TaskScheduler.EXTRA_OCCURRENCE_ID, occurrenceId)
                 putExtra(TaskAlarmReceiver.EXTRA_SNOOZE_MINUTES, minutes)
             })
         }
@@ -38,6 +44,7 @@ class AlarmAlertActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setFinishOnTouchOutside(false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -51,10 +58,14 @@ class AlarmAlertActivity : ComponentActivity() {
         }
 
         val taskId = intent.getLongExtra(TaskScheduler.EXTRA_TASK_ID, -1L)
-        val title = intent.getStringExtra(UrgentAlarmService.EXTRA_TITLE) ?: "Lembrete Urgente"
+        val occurrenceId = intent.getLongExtra(TaskScheduler.EXTRA_OCCURRENCE_ID, -1L)
+        val title = intent.getStringExtra(UrgentAlarmService.EXTRA_TITLE) ?: "Tarefa Agendada"
         val description = intent.getStringExtra(UrgentAlarmService.EXTRA_DESCRIPTION) ?: ""
 
         setContent {
+            BackHandler(enabled = true) {
+                // O alerta só encerra mediante intervenção explícita: Concluir ou Adiar
+            }
             MeuAssistenteTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -73,7 +84,7 @@ class AlarmAlertActivity : ComponentActivity() {
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            text = "LEMBRETE URGENTE",
+                            text = "ALERTA DE TAREFA",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.error
@@ -99,10 +110,14 @@ class AlarmAlertActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 UrgentAlarmService.stop(this@AlarmAlertActivity)
-                                if (taskId != -1L) {
+                                if (taskId != -1L) NotificationHelper.cancelNotification(this@AlarmAlertActivity, taskId.toInt())
+                                if (occurrenceId != -1L) NotificationHelper.cancelNotification(this@AlarmAlertActivity, (occurrenceId + 200_000L).toInt())
+
+                                if (taskId != -1L || occurrenceId != -1L) {
                                     sendBroadcast(Intent(this@AlarmAlertActivity, TaskAlarmReceiver::class.java).apply {
                                         action = TaskAlarmReceiver.ACTION_COMPLETE_TASK
                                         putExtra(TaskScheduler.EXTRA_TASK_ID, taskId)
+                                        putExtra(TaskScheduler.EXTRA_OCCURRENCE_ID, occurrenceId)
                                     })
                                 }
                                 finish()
@@ -118,9 +133,9 @@ class AlarmAlertActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            listOf(5, 10, 30).forEach { mins ->
+                            listOf(5, 15, 30).forEach { mins ->
                                 OutlinedButton(
-                                    onClick = { triggerSnooze(taskId, mins) },
+                                    onClick = { triggerSnooze(taskId, occurrenceId, mins) },
                                     modifier = Modifier.weight(1f).height(52.dp),
                                     contentPadding = PaddingValues(horizontal = 6.dp)
                                 ) {

@@ -8,19 +8,24 @@ import com.example.meuassistente.domain.repository.TaskDomainRepository
 import com.example.meuassistente.domain.rule.RecurrenceEngine
 
 class CreateTaskSeriesUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null
 ) {
     suspend operator fun invoke(series: TaskSeries, initialTriggerUtc: Long): Long {
         require(series.title.isNotBlank()) { "O título da tarefa não pode estar em branco." }
-        return repository.createSeriesWithInitialOccurrence(
+        val occurrenceId = repository.createSeriesWithInitialOccurrence(
             series = series.copy(title = series.title.trim()),
             initialTriggerUtc = initialTriggerUtc
         )
+        onScheduleOccurrence?.invoke(occurrenceId, initialTriggerUtc, series.hasAlarm)
+        return occurrenceId
     }
 }
 
 class CompleteTaskOccurrenceUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null,
+    private val onCancelOccurrence: ((occurrenceId: Long) -> Unit)? = null
 ) {
     suspend operator fun invoke(
         series: TaskSeries,
@@ -33,6 +38,7 @@ class CompleteTaskOccurrenceUseCase(
             snoozedUntilUtc = null
         )
         repository.updateOccurrence(updatedOccurrence)
+        onCancelOccurrence?.invoke(occurrence.id)
 
         val nextTriggerUtc = RecurrenceEngine.calculateNextOccurrenceUtc(
             baseScheduledUtc = occurrence.scheduledAtUtc,
@@ -41,15 +47,18 @@ class CompleteTaskOccurrenceUseCase(
             referenceNowUtc = completedAtUtc
         ) ?: return null
 
-        return repository.createSeriesWithInitialOccurrence(
+        val nextOccurrenceId = repository.createSeriesWithInitialOccurrence(
             series = series.copy(id = series.id),
             initialTriggerUtc = nextTriggerUtc
         )
+        onScheduleOccurrence?.invoke(nextOccurrenceId, nextTriggerUtc, series.hasAlarm)
+        return nextOccurrenceId
     }
 }
 
 class SnoozeTaskOccurrenceUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null
 ) {
     suspend operator fun invoke(
         occurrence: TaskOccurrence,
@@ -62,12 +71,15 @@ class SnoozeTaskOccurrenceUseCase(
             nowUtc = nowUtc
         )
         repository.updateOccurrence(snoozed)
+        val targetTrigger = snoozed.snoozedUntilUtc ?: snoozed.scheduledAtUtc
+        onScheduleOccurrence?.invoke(snoozed.id, targetTrigger, true)
         return snoozed
     }
 }
 
 class ReopenTaskOccurrenceUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null
 ) {
     suspend operator fun invoke(occurrence: TaskOccurrence): TaskOccurrence {
         val reopened = occurrence.copy(
@@ -76,12 +88,14 @@ class ReopenTaskOccurrenceUseCase(
             snoozedUntilUtc = null
         )
         repository.updateOccurrence(reopened)
+        onScheduleOccurrence?.invoke(reopened.id, reopened.scheduledAtUtc, true)
         return reopened
     }
 }
 
 class CancelOccurrenceUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onCancelOccurrence: ((occurrenceId: Long) -> Unit)? = null
 ) {
     suspend operator fun invoke(occurrence: TaskOccurrence): TaskOccurrence {
         val cancelled = occurrence.copy(
@@ -89,12 +103,14 @@ class CancelOccurrenceUseCase(
             snoozedUntilUtc = null
         )
         repository.updateOccurrence(cancelled)
+        onCancelOccurrence?.invoke(cancelled.id)
         return cancelled
     }
 }
 
 class RescheduleOccurrenceUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null
 ) {
     suspend operator fun invoke(
         occurrence: TaskOccurrence,
@@ -109,12 +125,14 @@ class RescheduleOccurrenceUseCase(
             status = OccurrenceStatus.PENDING
         )
         repository.updateOccurrence(rescheduled)
+        onScheduleOccurrence?.invoke(rescheduled.id, newScheduledAtUtc, true)
         return rescheduled
     }
 }
 
 class UpdateTaskSeriesRuleUseCase(
-    private val repository: TaskDomainRepository
+    private val repository: TaskDomainRepository,
+    private val onScheduleOccurrence: ((occurrenceId: Long, triggerUtc: Long, hasAlarm: Boolean) -> Unit)? = null
 ) {
     suspend operator fun invoke(
         series: TaskSeries,
@@ -134,10 +152,11 @@ class UpdateTaskSeriesRuleUseCase(
             priority = newPriority,
             hasAlarm = newHasAlarm
         )
-        repository.createSeriesWithInitialOccurrence(
+        val occurrenceId = repository.createSeriesWithInitialOccurrence(
             series = updated,
             initialTriggerUtc = updated.createdAtUtc
         )
+        onScheduleOccurrence?.invoke(occurrenceId, updated.createdAtUtc, updated.hasAlarm)
         return updated
     }
 }

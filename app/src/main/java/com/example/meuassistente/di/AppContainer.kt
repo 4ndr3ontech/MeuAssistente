@@ -11,6 +11,7 @@ import com.example.meuassistente.data.repository.RoutineRepositoryImpl
 import com.example.meuassistente.data.repository.TaskDomainRepositoryImpl
 import com.example.meuassistente.data.repository.TaskRepository
 import com.example.meuassistente.data.security.ApiKeyVault
+import com.example.meuassistente.scheduler.TaskScheduler
 import com.example.meuassistente.domain.model.FinancialObligation
 import com.example.meuassistente.domain.model.ObligationStatus
 import com.example.meuassistente.domain.model.OccurrenceStatus
@@ -98,31 +99,51 @@ class AppContainer(context: Context) {
     }
 
     val createTaskSeriesUseCase: CreateTaskSeriesUseCase by lazy {
-        CreateTaskSeriesUseCase(taskDomainRepository)
+        CreateTaskSeriesUseCase(taskDomainRepository) { occId, triggerUtc, hasAlarm ->
+            TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+        }
     }
 
     val completeTaskOccurrenceUseCase: CompleteTaskOccurrenceUseCase by lazy {
-        CompleteTaskOccurrenceUseCase(taskDomainRepository)
+        CompleteTaskOccurrenceUseCase(
+            repository = taskDomainRepository,
+            onScheduleOccurrence = { occId, triggerUtc, hasAlarm ->
+                TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+            },
+            onCancelOccurrence = { occId ->
+                TaskScheduler.cancelOccurrence(appContext, occId)
+            }
+        )
     }
 
     val snoozeTaskOccurrenceUseCase: SnoozeTaskOccurrenceUseCase by lazy {
-        SnoozeTaskOccurrenceUseCase(taskDomainRepository)
+        SnoozeTaskOccurrenceUseCase(taskDomainRepository) { occId, triggerUtc, hasAlarm ->
+            TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+        }
     }
 
     val reopenTaskOccurrenceUseCase: ReopenTaskOccurrenceUseCase by lazy {
-        ReopenTaskOccurrenceUseCase(taskDomainRepository)
+        ReopenTaskOccurrenceUseCase(taskDomainRepository) { occId, triggerUtc, hasAlarm ->
+            TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+        }
     }
 
     val cancelOccurrenceUseCase: CancelOccurrenceUseCase by lazy {
-        CancelOccurrenceUseCase(taskDomainRepository)
+        CancelOccurrenceUseCase(taskDomainRepository) { occId ->
+            TaskScheduler.cancelOccurrence(appContext, occId)
+        }
     }
 
     val rescheduleOccurrenceUseCase: RescheduleOccurrenceUseCase by lazy {
-        RescheduleOccurrenceUseCase(taskDomainRepository)
+        RescheduleOccurrenceUseCase(taskDomainRepository) { occId, triggerUtc, hasAlarm ->
+            TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+        }
     }
 
     val updateTaskSeriesRuleUseCase: UpdateTaskSeriesRuleUseCase by lazy {
-        UpdateTaskSeriesRuleUseCase(taskDomainRepository)
+        UpdateTaskSeriesRuleUseCase(taskDomainRepository) { occId, triggerUtc, hasAlarm ->
+            TaskScheduler.scheduleOccurrence(appContext, occId, triggerUtc, hasAlarm)
+        }
     }
 
     val saveCalendarEventUseCase: SaveCalendarEventUseCase by lazy {
