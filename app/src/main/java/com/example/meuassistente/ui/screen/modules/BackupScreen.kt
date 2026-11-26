@@ -1,5 +1,6 @@
 package com.example.meuassistente.ui.screen.modules
 
+import android.content.ClipData
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -36,11 +36,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.meuassistente.domain.repository.FinanceRepository
@@ -48,6 +49,7 @@ import com.example.meuassistente.domain.repository.NoteRepository
 import com.example.meuassistente.domain.repository.TaskDomainRepository
 import com.example.meuassistente.domain.usecase.backup.BuildBackupPayloadUseCase
 import com.example.meuassistente.domain.usecase.backup.VerifyAndParseBackupUseCase
+import kotlinx.coroutines.launch
 
 @Composable
 fun BackupScreen(
@@ -59,7 +61,8 @@ fun BackupScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val seriesList by taskDomainRepository.observeActiveSeries().collectAsState(initial = emptyList())
     val obligationsList by financeRepository.observeObligations().collectAsState(initial = emptyList())
     val notesList by noteRepository.observeActiveNotes().collectAsState(initial = emptyList())
@@ -134,9 +137,13 @@ fun BackupScreen(
                     if (payloadText.isNotBlank()) {
                         TextButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(payloadText))
-                                isError = false
-                                statusMessage = "JSON copiado para a área de transferência."
+                                scope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(ClipData.newPlainText("Backup JSON", payloadText))
+                                    )
+                                    isError = false
+                                    statusMessage = "JSON copiado para a área de transferência."
+                                }
                             }
                         ) {
                             Icon(
